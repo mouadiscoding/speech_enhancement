@@ -1,0 +1,7 @@
+numpy
+scipy
+matplotlib
+pesq
+pystoi
+tqdm
+soundfile

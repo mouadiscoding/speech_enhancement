@@ -1,0 +1,14 @@
+# Ignore directories
+speech/
+exp/
+training_set/
+test_set/
+training_set_small/
+__pycache__/
+
+# Ignore PNG pictures
+*.png
+
+# Ignore Jupyter Notebook files
+01_experiment.ipynb
+02_cleanunet.ipynb
