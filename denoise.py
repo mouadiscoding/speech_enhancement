@@ -24,6 +24,60 @@ from dataset import load_CleanNoisyPairDataset
 from scipy.io.wavfile import write as wavwrite
 from scipy.io.wavfile import read as wavread
 
+import numpy as np
+from pesq import pesq
+from pystoi import stoi
+from scipy.signal import stft
+import torch
+
+def evaluate_model(clean_audio, enhanced_audio, sample_rate=16000):
+    """
+    Evaluate the speech enhancement model using PESQ, STOI, and SNR metrics.
+    
+    Args:
+    clean_audio (list): List of clean audio signals (numpy arrays)
+    enhanced_audio (list): List of enhanced audio signals (numpy arrays)
+    sample_rate (int): Sampling rate of the audio signals (default: 16000)
+    
+    Returns:
+    dict: A dictionary containing the average PESQ, STOI, and SNR scores
+    """
+
+    pesq_scores = []
+    stoi_scores = []
+    snr_scores = []
+
+    for clean, enhanced in zip(clean_audio, enhanced_audio):
+        
+        # Make sure the signals have the same length
+        min_len = min(len(clean), len(enhanced))
+        clean = clean[:min_len]
+        enhanced = enhanced[:min_len]
+
+        # PESQ
+        pesq_score = pesq(sample_rate, clean, enhanced, 'wb')  # 'wb' for wideband
+        pesq_scores.append(pesq_score)
+        
+        # STOI
+        stoi_score = stoi(clean, enhanced, sample_rate, extended=False)
+        stoi_scores.append(stoi_score)
+        
+        # SNR
+        noise = clean - enhanced
+        snr_score = 10 * np.log10(np.sum(clean**2) / np.sum(noise**2))
+        snr_scores.append(snr_score)
+
+    # Calculate average scores
+    avg_pesq = np.mean(pesq_scores)
+    avg_stoi = np.mean(stoi_scores)
+    avg_snr = np.mean(snr_scores)
+
+    return {
+        'PESQ': avg_pesq,
+        'STOI': avg_stoi,
+        'SNR': avg_snr
+    }
+
 
 def denoise_single_sample(clean_audio, noisy_audio, model_path, sample_rate, output_directory=None, dump=False):
     """
@@ -122,16 +176,25 @@ def denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log
     ckpt_directory = os.path.join(log_dir, exp_path, 'checkpoint')
     if ckpt_iter == 'max':
         ckpt_iter = find_max_epoch(ckpt_directory)
-    if ckpt_iter != 'pretrained':
+    
+    if ckpt_iter == 'best':
+        ckpt_iter = 'best_model'
+    elif ckpt_iter != 'pretrained':
         ckpt_iter = int(ckpt_iter)
-    model_path = os.path.join(ckpt_directory, '{}.pkl'.format(ckpt_iter))
+    
+    if ckpt_iter == 'best_model':
+        model_path = os.path.join(ckpt_directory, 'best_model.pkl')
+        print(f'model path: {model_path}')
+    if ckpt_iter != 'best_model':
+        model_path = os.path.join(ckpt_directory, '{}.pkl'.format(ckpt_iter))
+    
     checkpoint = torch.load(model_path, map_location='cpu')
     net.load_state_dict(checkpoint['model_state_dict'])
     net.eval()
 
     # get output directory ready
     if ckpt_iter == "pretrained":
-        speech_directory = os.path.join(output_directory, exp_path, 'speech', ckpt_iter) 
+        speech_directory = os.path.join(output_directory, exp_path, 'speech', ckpt_iter)
     else:
         speech_directory = os.path.join(output_directory, exp_path, 'speech', '{}k'.format(ckpt_iter//1000))
     if dump and not os.path.isdir(speech_directory):
@@ -155,5 +218,13 @@ def denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log
         else:
             all_clean_audio.append(clean_audio[0].squeeze().cpu().numpy())
             all_generated_audio.append(generated_audio[0].squeeze().cpu().numpy())
+    
+    print(f'Number of generated audio {len(all_generated_audio)* batch_size}')
+    if not dump:
+        evaluation_results = evaluate_model(all_clean_audio, all_generated_audio, sample_rate)
+        print("Evaluation Results:")
+        print(f"PESQ: {evaluation_results['PESQ']:.4f}")
+        print(f"STOI: {evaluation_results['STOI'] * 100 :.2f}")
+        print(f"SNR: {evaluation_results['SNR']:.4f} dB")
 
     return all_clean_audio, all_generated_audio
