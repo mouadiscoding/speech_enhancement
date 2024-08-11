@@ -29,6 +29,8 @@ from pesq import pesq
 from pystoi import stoi
 from scipy.signal import stft
 import torch
+import pysepm_evo
+from pysepm_evo import srmr
 
 def evaluate_model(clean_audio, enhanced_audio, sample_rate=16000):
     """
@@ -46,6 +48,10 @@ def evaluate_model(clean_audio, enhanced_audio, sample_rate=16000):
     pesq_scores = []
     stoi_scores = []
     snr_scores = []
+    csig_scores = []
+    cbak_scores = []
+    covrl_scores = []
+    srmr_scores = []
 
     for clean, enhanced in zip(clean_audio, enhanced_audio):
         
@@ -67,15 +73,33 @@ def evaluate_model(clean_audio, enhanced_audio, sample_rate=16000):
         snr_score = 10 * np.log10(np.sum(clean**2) / np.sum(noise**2))
         snr_scores.append(snr_score)
 
+        # Calculate CSIG, CBAK, COVRL
+        composite_measures = pysepm_evo.composite(clean, enhanced, sample_rate)
+        csig_scores.append(composite_measures[0])
+        cbak_scores.append(composite_measures[1])
+        covrl_scores.append(composite_measures[2])
+
+        # SRMR score
+        srmr_score = srmr(clean, sample_rate)
+        srmr_scores.append(srmr_score)
+
     # Calculate average scores
     avg_pesq = np.mean(pesq_scores)
     avg_stoi = np.mean(stoi_scores)
     avg_snr = np.mean(snr_scores)
+    avg_csig = np.mean(csig_scores)
+    avg_cbak = np.mean(cbak_scores)
+    avg_covrl = np.mean(covrl_scores)
+    avg_srmr = np.mean(srmr_scores)
 
     return {
         'PESQ': avg_pesq,
         'STOI': avg_stoi,
-        'SNR': avg_snr
+        'SNR': avg_snr,
+        'CSIG': avg_csig,
+        'CBAK': avg_cbak,
+        'COVRL': avg_covrl,
+        "SRMR": avg_srmr
     }
 
 
@@ -185,7 +209,9 @@ def denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log
     if ckpt_iter == 'best_model':
         model_path = os.path.join(ckpt_directory, 'best_model.pkl')
         print(f'model path: {model_path}')
-    if ckpt_iter != 'best_model':
+    elif ckpt_iter == 'pretrained':
+        model_path = "./exp/pretrained.pkl"
+    else:
         model_path = os.path.join(ckpt_directory, '{}.pkl'.format(ckpt_iter))
     
     checkpoint = torch.load(model_path, map_location='cpu')
@@ -193,14 +219,16 @@ def denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log
     net.eval()
 
     # get output directory ready
-    if ckpt_iter == "pretrained":
+    if ckpt_iter == "pretrained" or "best_model":
         speech_directory = os.path.join(output_directory, exp_path, 'speech', ckpt_iter)
     else:
         speech_directory = os.path.join(output_directory, exp_path, 'speech', '{}k'.format(ckpt_iter//1000))
     if dump and not os.path.isdir(speech_directory):
         os.makedirs(speech_directory)
         os.chmod(speech_directory, 0o775)
-    print("speech_directory: ", speech_directory, flush=True)
+    
+    if dump:
+        print("speech_directory: ", speech_directory, flush=True)
 
     # inference
     all_generated_audio = []
@@ -226,5 +254,10 @@ def denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log
         print(f"PESQ: {evaluation_results['PESQ']:.4f}")
         print(f"STOI: {evaluation_results['STOI'] * 100 :.2f}")
         print(f"SNR: {evaluation_results['SNR']:.4f} dB")
+        print(f"CSIG: {evaluation_results['CSIG']}")
+        print(f"CBAK: {evaluation_results['CBAK']}")
+        print(f"COVRL: {evaluation_results['COVRL']}")
+        print(f"SRMR: {evaluation_results['SRMR']}")
+
 
     return all_clean_audio, all_generated_audio

@@ -1,3 +1,5 @@
+torch
+torchaudio
 numpy
 scipy
 matplotlib
@@ -5,3 +7,5 @@ pesq
 pystoi
 tqdm
 soundfile
+pysepm-evo
+git+https://github.com/jfsantos/SRMRpy
