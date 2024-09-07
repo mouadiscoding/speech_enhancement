@@ -12,22 +12,14 @@ import torch.nn as nn
 import torchaudio
 import random
 
-random.seed(0)
-torch.manual_seed(0)
-np.random.seed(0)
-
-
-
 from network import CleanUNet
 from dataset import load_CleanNoisyPairDataset
 
 from scipy.io.wavfile import write as wavwrite
-from scipy.io.wavfile import read as wavread
 
 import numpy as np
 from pesq import pesq
 from pystoi import stoi
-from scipy.signal import stft
 import torch
 import pysepm_evo
 from pysepm_evo import srmr
@@ -102,8 +94,7 @@ def evaluate_model(clean_audio, enhanced_audio, sample_rate=16000):
         "SRMR": avg_srmr
     }
 
-
-def denoise_single_sample(clean_audio, noisy_audio, model_path, sample_rate, output_directory=None, dump=False):
+def cleanunet_denoise_single_sample(clean_audio, noisy_audio, model_path, sample_rate, output_directory=None, dump=False):
     """
     Denoise a single audio sample.
 
@@ -162,11 +153,12 @@ def denoise_single_sample(clean_audio, noisy_audio, model_path, sample_rate, out
     else:
         return clean_audio.cpu(), generated_audio.cpu()
     
-def denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log_dir, exp_path, ckpt_iter, dump=False):
+def cleanunet_denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log_dir, exp_path, ckpt_iter, dump=False):
     """
     Denoise audio
 
-    Denoise audio and save the enhanced versions
+    Denoise audio and save the enhanced versions if dump is set to True
+    Benchmark the model if dump is set to False
 
     Parameters:
     clean_dir (str):                directory containing clean audio files (for reference)

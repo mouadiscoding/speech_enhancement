@@ -5,6 +5,7 @@ training_set/
 test_set/
 training_set_small/
 __pycache__/
+assets/
 
 # Ignore PNG pictures
 *.png
