@@ -10,3 +10,11 @@ tqdm
 soundfile
 pysepm-evo
 git+https://github.com/jfsantos/SRMRpy
+fastapi
+uvicorn
+streamlit
+soundfile 
+sounddevice
+python-multipart
+ipython
+confluent_kafka

@@ -1,0 +1,80 @@
+backbone: dcunet
+data_module_cls: !!python/object:sgmse.data_module.SpecsDataModule
+  _log_hyperparams: false
+  allow_zero_length_dataloader_with_multiple_devices: false
+  base_dir: /content/drive/MyDrive/TrUDiffse/base_dir/
+  batch_size: 32
+  dummy: false
+  format: default
+  gpu: true
+  hop_length: 128
+  kwargs: {}
+  n_fft: 510
+  normalize: clean
+  num_frames: 256
+  num_workers: 4
+  prepare_data_per_node: true
+  spec_abs_exponent: 0.5
+  spec_factor: 0.15
+  spectogram_learning: false
+  trainer: null
+  transform_type: exponent
+  window: !!python/object/apply:torch._utils._rebuild_tensor_v2
+  - !!python/object/apply:torch.storage._load_from_bytes
+    - !!binary |
+      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
+      AAizOQAoHzkAIB84AAAAAA==
+  - 0
+  - !!python/tuple
+    - 510
+  - !!python/tuple
+    - 1
+  - false
+  - !!python/object/apply:collections.OrderedDict
+    - []
+  windows: {}
+ema_decay: 0.999
+loss_type: mse
+lr: 0.0001
+num_eval_files: 20
+sde: ouve
+t_eps: 0.03

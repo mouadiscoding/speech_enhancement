@@ -94,12 +94,11 @@ def evaluate_model(clean_audio, enhanced_audio, sample_rate=16000):
         "SRMR": avg_srmr
     }
 
-def cleanunet_denoise_single_sample(clean_audio, noisy_audio, model_path, sample_rate, output_directory=None, dump=False):
+def cleanunet_denoise_single_sample(noisy_audio, model_path, sample_rate, output_directory=None, dump=False):
     """
     Denoise a single audio sample.
 
     Parameters:
-    clean_audio (torch.Tensor):     The clean audio tensor.
     noisy_audio (torch.Tensor):     The noisy audio tensor.
     model_path (str):               Path to the pretrained model checkpoint.
     sample_rate (int):              The sample rate of the audio.
@@ -132,9 +131,7 @@ def cleanunet_denoise_single_sample(clean_audio, noisy_audio, model_path, sample
     net.load_state_dict(checkpoint['model_state_dict'])
     net.eval()
 
-    # Ensure the tensors are on the same device
     noisy_audio = noisy_audio.cuda()
-    clean_audio = clean_audio.cuda()
 
     # Inference
     generated_audio = sampling(net, noisy_audio)
@@ -151,7 +148,7 @@ def cleanunet_denoise_single_sample(clean_audio, noisy_audio, model_path, sample
         output_path = os.path.join(output_directory, 'enhanced_audio.wav')
         torchaudio.save(output_path, generated_audio.cpu(), sample_rate)
     else:
-        return clean_audio.cpu(), generated_audio.cpu()
+        return generated_audio.cpu()
     
 def cleanunet_denoise(clean_dir, noisy_dir, batch_size, sample_rate, output_directory, log_dir, exp_path, ckpt_iter, dump=False):
     """
