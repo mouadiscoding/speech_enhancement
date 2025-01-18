@@ -4,6 +4,11 @@ exp/
 data/
 __pycache__/
 assets/
+logs/
 # Ignore Jupyter Notebook files
 01_experiment.ipynb
 02_cleanunet.ipynb
+# Ignore model
+app/best_model.pkl
+# Ignore audio files
+app/*.wav
